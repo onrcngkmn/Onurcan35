@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onur Müzik Player</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    /* Genel */
+    html, body {
+      margin: 0; padding: 0;
+      height: 100vh; width: 100vw;
+      background: #000;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* Ekolayzır - 15 çubuk renkli animasyonlu */
+    .equalizer-container {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+      z-index: 10000;
+      user-select: none;
+      height: 60px;
+    }
+
+    .equalizer-container .bar {
+      width: 8px;
+      background: linear-gradient(45deg, #ff0057, #ffbb00, #00ff77);
+      border-radius: 3px;
+      height: 20px;
+      box-shadow: 0 0 8px currentColor;
+      animation: bounce 1.2s infinite ease-in-out;
+      animation-fill-mode: forwards;
+    }
+
+    /* Her bar için farklı gecikme */
+    .equalizer-container .bar:nth-child(1) { animation-delay: 0s; }
+    .equalizer-container .bar:nth-child(2) { animation-delay: 0.08s; }
+    .equalizer-container .bar:nth-child(3) { animation-delay: 0.16s; }
+    .equalizer-container .bar:nth-child(4) { animation-delay: 0.24s; }
+    .equalizer-container .bar:nth-child(5) { animation-delay: 0.32s; }
+    .equalizer-container .bar:nth-child(6) { animation-delay: 0.40s; }
+    .equalizer-container .bar:nth-child(7) { animation-delay: 0.48s; }
+    .equalizer-container .bar:nth-child(8) { animation-delay: 0.56s; }
+    .equalizer-container .bar:nth-child(9) { animation-delay: 0.64s; }
+    .equalizer-container .bar:nth-child(10) { animation-delay: 0.72s; }
+    .equalizer-container .bar:nth-child(11) { animation-delay: 0.80s; }
+    .equalizer-container .bar:nth-child(12) { animation-delay: 0.88s; }
+    .equalizer-container .bar:nth-child(13) { animation-delay: 0.96s; }
+    .equalizer-container .bar:nth-child(14) { animation-delay: 1.04s; }
+    .equalizer-container .bar:nth-child(15) { animation-delay: 1.12s; }
+
+    @keyframes bounce {
+      0%, 100% { height: 20px; background-position: 0% 50%; }
+      50% { height: 60px; background-position: 100% 50%; }
+    }
+
+    /* Müzik Çalar */
+    .player-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 600px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(0,255,136,0.7);
+      text-align: center;
+      color: #fff;
+      user-select: none;
+    }
+
+    /* Kontroller */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .controls button {
+      background: #00ff88;
+      border: none;
+      color: #000;
+      font-size: 1.4rem;
+      padding: 10px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00ff88;
+      transition: transform 0.2s ease;
+      user-select: none;
+    }
+    .controls button:hover {
+      transform: scale(1.1);
+    }
+
+    audio {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      outline: none;
+    }
+
+    /* Playlist */
+    .playlist {
+      max-height: 200px;
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      text-align: left;
+      color: #fff;
+      user-select: none;
+      padding: 8px 0;
+    }
+    .playlist-item {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid #222;
+      transition: background 0.3s ease;
+    }
+    .playlist-item:hover {
+      background: rgba(0, 255, 136, 0.2);
+    }
+    .playlist-item.active {
+      background: rgba(0, 255, 136, 0.5);
+      font-weight: 700;
+    }
+
+    /* Playlist switcher */
+    .playlist-switcher {
+      margin-top: 15px;
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      user-select: none;
+    }
+    .playlist-switcher div {
+      cursor: pointer;
+      color: #00ff88;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+      text-align: center;
+      width: 60px;
+      user-select: none;
+    }
+    .playlist-switcher div:hover,
+    .playlist-switcher div.active {
+      opacity: 1;
+      font-weight: 700;
+      text-shadow: 0 0 5px #00ff88;
+    }
+    .playlist-switcher i {
+      font-size: 2rem;
+      margin-bottom: 4px;
+    }
+
+    /* Sosyal ikonlar sağ alt */
+    .social-icons {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 18px;
+      z-index: 11000;
+    }
+    .social-icons a {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      font-size: 1.6rem;
+      color: white;
+      text-decoration: none;
+      box-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+      transition: transform 0.3s ease;
+      user-select: none;
+    }
+    .social-icons a:hover {
+      transform: scale(1.2);
+    }
+    .social-icons .facebook {
+      background-color: #3b5998;
+    }
+    .social-icons .instagram {
+      background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, 
+      #fd5949 45%, #d6249f 60%, #285AEB 90%);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ekolayzır -->
+<div class="equalizer-container" aria-label="Audio Visualizer" role="img">
+  <!-- 15 çubuk -->
+  <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+</div>
+
+<!-- Müzik Çalar -->
+<div class="player-container">
+  <div class="controls">
+    <button id="prev" title="Önceki">&#9664;&#9664;</button>
+    <button id="play" title="Oynat">&#9658;</button>
+    <button id="pause" title="Duraklat" style="display:none;">&#10073;&#10073;</button>
+    <button id="next" title="Sonraki">&#9654;&#9654;</button>
+  </div>
+
+  <audio id="audio" preload="metadata"></audio>
+
+  <div class="playlist" id="playlist"></div>
+
+  <div class="playlist-switcher">
+    <div id="playlist1" class="active" title="1. Liste">
+      <i class="fas fa-music"></i>
+      <div>1. Liste</div>
+    </div>
+    <div id="playlist2" title="2. Liste">
+      <i class="fas fa-music"></i>
+      <div>2. Liste</div>
+    </div>
+    <div id="playlist3" title="3. Liste">
+      <i class="fas fa-music"></i>
+      <div>3. Liste</div>
+    </div>
+    <div id="playlist4" title="4. Liste">
+      <i class="fas fa-music"></i>
+      <div>4. Liste</div>
+    </div>
+    <div id="playlist5" title="5. Liste">
+      <i class="fas fa-music"></i>
+      <div>5. Liste</div>
+    </div>
+  </div>
+</div>
+
+<!-- Sosyal Medya -->
+<div class="social-icons">
+  <a href="https://www.facebook.com/onur.gokmen.97" target="_blank" class="facebook" title="Facebook">
+    <i class="fab fa-facebook-f"></i>
+  </a>
+  <a href="https://www.instagram.com/onrcngkmn" target="_blank" class="instagram" title="Instagram">
+    <i class="fab fa-instagram"></i>
+  </a>
+</div>
+
+<script>
+  const audio = document.getElementById('audio');
+  const playlistEl = document.getElementById('playlist');
+  const playBtn = document.getElementById('play');
+  const pauseBtn = document.getElementById('pause');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+
+  const playlistBtns = [
+    document.getElementById('playlist1'),
+    document.getElementById('playlist2'),
+    document.getElementById('playlist3'),
+    document.getElementById('playlist4'),
+    document.getElementById('playlist5')
+  ];
+
+  let songs = [];
+  let currentIndex = 0;
+  let isPlaying = false;
+  let currentPlaylist = 1;
+
+  function renderPlaylist() {
+    playlistEl.innerHTML = '';
+    songs.forEach((song, i) => {
+      const div = document.createElement('div');
+      div.className = 'playlist-item' + (i === currentIndex ? ' active' : '');
+      div.textContent = song.name;
+      div.addEventListener('click', () => {
+        currentIndex = i;
+        setSong(currentIndex);
+        playAudio();
+      });
+      playlistEl.appendChild(div);
+    });
+  }
+
+  function setSong(index) {
+    if (!songs[index]) return;
+    audio.src = songs[index].file;
+    currentIndex = index;
+    updateActive();
+    audio.currentTime = 0;
+    if (isPlaying) {
+      audio.play().catch(console.error);
+    }
+  }
+
+  function updateActive() {
+    document.querySelectorAll('.playlist-item').forEach((el, idx) => {
+      el.classList.toggle('active', idx === currentIndex);
+    });
+    playlistBtns.forEach(btn => btn.classList.remove('active'));
+    playlistBtns[currentPlaylist - 1].classList.add('active');
+  }
+
+  function playAudio() {
+    audio.play().then(() => {
+      isPlaying = true;
+      playBtn.style.display = 'none';
+      pauseBtn.style.display = 'inline-block';
+    }).catch(console.error);
+  }
+
+  function pauseAudio() {
+    audio.pause();
+    isPlaying = false;
+    playBtn.style.display = 'inline-block';
+    pauseBtn.style.display = 'none';
+  }
+
+  playBtn.addEventListener('click', playAudio);
+  pauseBtn.addEventListener('click', pauseAudio);
+
+  prevBtn.addEventListener('click', () => {
+    if (songs.length === 0) return;
+    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+    setSong(currentIndex);
+    playAudio();
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (songs.length === 0) return;
+    currentIndex = (currentIndex + 1) % songs.length;
+    setSong(currentIndex);
+    playAudio();
+  });
+
+  audio.addEventListener('ended', () => {
+    nextBtn.click();
+  });
+
+  async function loadPlaylist(n) {
+    try {
+      const res = await fetch(`/songs/${n}`);
+      if (!res.ok) throw new Error('Liste yüklenemedi');
+      songs = await res.json();
+      currentPlaylist = n;
+      currentIndex = 0;
+      setSong(currentIndex);
+      renderPlaylist();
+    } catch (err) {
+      console.error(`Playlist ${n} yüklenirken hata:`, err);
+    }
+  }
+
+  playlistBtns.forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      if (currentPlaylist === i + 1) return;
+      loadPlaylist(i + 1);
+    });
+  });
+
+  // Sayfa açılınca 1. listeyi yükle
+  loadPlaylist(1);
+</script>
+</body>
+</html>
